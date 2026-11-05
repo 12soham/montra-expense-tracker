@@ -1,39 +1,31 @@
 package com.example.montra_backend.Service;
 
-
-
-
 import com.example.montra_backend.dto.*;
-import com.example.montra_backend.Entity.Expense;
-import com.example.montra_backend.Entity.User;
-import com.example.montra_backend.Repository.ExpenseRepository;
-import com.example.montra_backend.Repository.ExpenseSpecification;
-import com.example.montra_backend.exception.BadRequestException;
-import com.example.montra_backend.exception.ResourceNotFoundException;
+import com.example.montra_backend.Entity.*;
+import com.example.montra_backend.Repository.*;
+import com.example.montra_backend.exception.*;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.YearMonth;
+import java.math.*;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@RequiredArgsConstructor
 public class ExpenseServiceImpl implements ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final AuthService authService;
+    private final ModelMapper modelMapper;
 
     private static final DateTimeFormatter MONTH_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM");
@@ -41,34 +33,22 @@ public class ExpenseServiceImpl implements ExpenseService {
     private static final DateTimeFormatter MONTH_LABEL_FORMATTER =
             DateTimeFormatter.ofPattern("MMM yyyy");
 
-    public ExpenseServiceImpl(
-            ExpenseRepository expenseRepository,
-            AuthService authService) {
-        this.expenseRepository = expenseRepository;
-        this.authService = authService;
-    }
-
     @Override
     public ExpenseResponseDTO createExpense(ExpenseRequestDTO dto) {
 
         User currentUser = authService.getCurrentUser();
 
-        Expense expense = new Expense();
-        expense.setAmount(dto.getAmount());
-        expense.setCategory(dto.getCategory().trim());
+        Expense expense = Expense.builder()
+        .amount(dto.getAmount())
+        .category(dto.getCategory())
+        .description(dto.getDescription() != null ? dto.getDescription().trim() : null)
+        .expenseDate(dto.getExpenseDate())
+        .user(currentUser)
+        .build();
 
-        expense.setDescription(
-                dto.getDescription() != null
-                        ? dto.getDescription().trim()
-                        : null
-        );
+        Expense savedExpense = expenseRepository.save(expense);
 
-        expense.setExpenseDate(dto.getExpenseDate());
-        expense.setUser(currentUser);
-
-        Expense saved = expenseRepository.save(expense);
-
-        return mapToResponse(saved);
+        return modelMapper.map(savedExpense, ExpenseResponseDTO.class);
     }
 
     @Override
@@ -77,15 +57,10 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         User currentUser = authService.getCurrentUser();
 
-        Expense expense = expenseRepository
-                .findByIdAndUser_Id(id, currentUser.getId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Expense not found with id: " + id
-                        )
-                );
+        Expense expense = expenseRepository.findByIdAndUser_Id(id, currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException( "Expense not found with id: " + id));
 
-        return mapToResponse(expense);
+        return modelMapper.map(expense, ExpenseResponseDTO.class);
     }
 
     @Override
@@ -105,18 +80,12 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         expense.setAmount(dto.getAmount());
         expense.setCategory(dto.getCategory().trim());
-
-        expense.setDescription(
-                dto.getDescription() != null
-                        ? dto.getDescription().trim()
-                        : null
-        );
-
+        expense.setDescription(dto.getDescription() != null ? dto.getDescription().trim() : null);
         expense.setExpenseDate(dto.getExpenseDate());
 
-        Expense updated = expenseRepository.save(expense);
+        Expense updatedExpense = expenseRepository.save(expense);
 
-        return mapToResponse(updated);
+        return modelMapper.map(updatedExpense, ExpenseResponseDTO.class);
     }
 
     @Override
