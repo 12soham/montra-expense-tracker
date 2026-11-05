@@ -1,9 +1,7 @@
 
 package com.example.montra_backend.controller;
 
-import com.example.montra_backend.dto.ExpenseRequestDTO;
-import com.example.montra_backend.dto.ExpenseResponseDTO;
-import com.example.montra_backend.dto.PageResponseDTO;
+import com.example.montra_backend.dto.*;
 import com.example.montra_backend.Service.ExpenseService;
 
 import jakarta.validation.Valid;

@@ -1,13 +1,14 @@
 package com.example.montra_backend.dto;
 
+import jakarta.validation.constraints.*;
 
+import lombok.*;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
 public class RegisterRequestDTO {
-
     @NotBlank(message = "Full name is required")
     @Size(
         min = 2,
@@ -28,38 +29,5 @@ public class RegisterRequestDTO {
         message = "Password must be between 6 and 72 characters"
     )
     private String password;
-
-    public RegisterRequestDTO() {
-    }
-
-    public RegisterRequestDTO(String name, String email, String password) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }
 

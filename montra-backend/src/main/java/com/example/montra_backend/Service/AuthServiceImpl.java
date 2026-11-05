@@ -1,16 +1,13 @@
-
 package com.example.montra_backend.Service;
 
-import com.example.montra_backend.dto.AuthResponseDTO;
-import com.example.montra_backend.dto.LoginRequestDTO;
-import com.example.montra_backend.dto.RegisterRequestDTO;
+import com.example.montra_backend.dto.*;
 import com.example.montra_backend.Entity.User;
 import com.example.montra_backend.exception.*;
 import com.example.montra_backend.Repository.UserRepository;
 import com.example.montra_backend.security.JwtTokenProvider;
 
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -27,42 +24,28 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
 
-    public AuthServiceImpl(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtTokenProvider tokenProvider,
-            AuthenticationManager authenticationManager
-    ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.tokenProvider = tokenProvider;
-        this.authenticationManager = authenticationManager;
-    }
-
     @Override
-    public AuthResponseDTO register(RegisterRequestDTO dto) {
+    public AuthResponse register(RegisterRequestDTO dto) {
 
         String email = dto.getEmail().trim().toLowerCase();
 
         if (userRepository.existsByEmail(email)) {
-            throw new BadRequestException(
-                    "An account with this email already exists."
-            );
+            throw new BadRequestException("An account with this email already exists.");
         }
 
-        User user = new User();
-        user.setName(dto.getName().trim());
-        user.setEmail(email);
-
-        // Store the hashed password, never the plain-text password.
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        User user = User.builder()
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .build();
 
         User savedUser = userRepository.save(user);
 
         String token = tokenProvider.generateToken(savedUser.getEmail());
 
-        return new AuthResponseDTO(
+        return new AuthResponse(
                 token,
+                "Bearer",
                 savedUser.getId(),
                 savedUser.getName(),
                 savedUser.getEmail()
@@ -70,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthResponseDTO login(LoginRequestDTO dto) {
+    public AuthResponse login(LoginRequestDTO dto) {
 
         String email = dto.getEmail().trim().toLowerCase();
 
@@ -82,8 +65,7 @@ public class AuthServiceImpl implements AuthService {
                         )
                 );
 
-        SecurityContextHolder.getContext()
-                .setAuthentication(authentication);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
@@ -92,8 +74,9 @@ public class AuthServiceImpl implements AuthService {
 
         String token = tokenProvider.generateToken(user.getEmail());
 
-        return new AuthResponseDTO(
+        return new AuthResponse(
                 token,
+                "token",
                 user.getId(),
                 user.getName(),
                 user.getEmail()
@@ -107,12 +90,8 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new BadRequestException(
-                    "No authenticated user found."
-            );
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new BadRequestException("No authenticated user found.");
         }
 
         Object principal = authentication.getPrincipal();
@@ -126,10 +105,6 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new BadRequestException(
-                                "Authenticated user not found."
-                        )
-                );
+                .orElseThrow(() -> new BadRequestException("Authenticated user not found."));
     }
 }
