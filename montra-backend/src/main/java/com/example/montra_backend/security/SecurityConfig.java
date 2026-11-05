@@ -97,7 +97,7 @@ public AuthenticationProvider authenticationProvider() {
 
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization", "Content-Type", "Accept", "X-Requested-With"
-        ));
+        ));/
 
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(false);
